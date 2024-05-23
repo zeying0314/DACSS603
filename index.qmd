@@ -1,0 +1,231 @@
+---
+title: "final_project_checkin"
+Author: ”Zeying Guo“
+format: 
+  html: 
+    embed-resources: true
+    self-contained-math: true
+---
+
+This is a Quarto website.
+
+To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+
+# Checkin_1:
+
+**Research Question:**
+
+*Research Question 1:*
+
+How does a health plan's restriction index (RI) affect the average cost per prescription, and is this relationship affected by the percentage of generic substitution (GS)?
+
+*Research Question 2:*
+
+To what extent do demographic factors such as average age of members (AGE) and percentage of female members (F) contribute to differences in drug costs among health plans?
+
+**Motivation:**
+
+For this data set, we explore the impact of factors related to healthcare costs on its impact. Understanding the interactions in the data is critical to interpreting the dynamics of costs associated with prescription drugs. First, we explore the relationship between revealed restriction indices (RIs) and generic drug use in health plans. The question of whether the impact of restriction indices on drug costs depends on how often health plans choose generic alternatives is explored and analyzed. Second, another interesting direction for analysis is demographics. This part of the study on the impact of characteristics such as the average age of Medicare plan members and the percentage of female members on prescription drug costs aims to provide a more comprehensive understanding of the factors that influence health care costs, making the analysis of this data set more holistic and enlightening.
+
+**Hypothesis:**
+
+*Hypothesis 1:*
+
+The relationship between the restriction index (RI) and average drug costs is affected by the percentage of generic substitution (GS). I hypothesize that health plans with higher GS percentages will have a weaker positive correlation between RI and drug costs compared to health plans with lower GS percentages.
+
+*Hypothesis 2*:
+
+Medicare plans with older average member ages will have higher drug costs. And Medicare plans with a higher percentage of female members may show higher drug costs.
+
+**Understanding and Description of the data:**
+
+(the following text is directly from <https://rdrr.io/rforge/alr4/man/drugcost.html>)
+
+"These data are to try to understand the effect of health plan characteristics on drug costs. Health plans vary in size, given as member months. Some plans use generic drugs more than others. All differ on copayments. Some have strong restrictions on which drugs can be dispensed value of RI=0 means that all drugs are dispensed, RI=100 means that only one per category is avaiable. The goal is to determine the terms that are related to cost, and in particular to understand the role of GS and RI in determining cost.
+
+**COST:** Ave. cost to plan for 1 prescription for 1 day
+
+**RXPM:** Number of prescriptions per member per year
+
+**GS:** Percent generic substitution, number between 0 (no substitution) to 100 (always use generic substitute)
+
+**RI:** Restrictiveness index (0=none, 100=total)
+
+**COPAY:** Average Rx copayment
+
+**AGE:** Average age of member
+
+**F:** Percent female members
+
+**MM:** Member months, a measure of the size of the plan" (drugcost: Drug cost.
+
+In [alr4](https://rdrr.io/rforge/alr4/))
+
+The dataset includes information on drug costs, prescriptions per member, generic substitution percentages, restrictiveness indices, copayments, average member ages, percentages of female members, and member months.
+
+-   Response Variable: COST
+
+-   Explanatory Variables: RXPM, GS, RI, COPAY, AGE, F, MM
+
+```{r}
+library(alr4)
+data(drugcost, package = "alr4")
+summary(drugcost)
+```
+
+```{r}
+names(drugcost)
+str(drugcost)
+```
+
+```{r}
+head(drugcost)
+```
+
+```{r}
+#this graph examine pairwise relationships between variables.
+
+library(corrplot)
+pairs(drugcost[, c("COST", "RXPM", "GS", "RI", "COPAY", "AGE", "F", "MM")])
+```
+
+I think we can see a kind of clear comparison between them in this chart. To me, for GS, it is clear that they converge on the right side and are larger than 35; for COPAY, they are clustered on the left side and are smaller than 7; and for RI, they are basically distributed only on the left side and are smaller than 20.
+
+```{r}
+cor_matrix <- cor(drugcost[, c("COST", "RXPM", "GS", "RI", "COPAY", "AGE", "F", "MM")])
+corrplot(cor_matrix, method = "color")
+```
+
+```{r}
+boxplot(COST ~ GS, data = drugcost, main = "Drug Costs by Generic Substitution", col = "lightgreen")
+
+```
+
+```{r}
+# Scatter plot with regression line
+plot(drugcost$RI, drugcost$COST, main = "Drug Costs vs. Restrictiveness Index",
+     xlab = "Restrictiveness Index (RI)", ylab = "Drug Costs", col = "blue")
+abline(lm(COST ~ RI, data = drugcost), col = "red")
+```
+
+From this graph, we can see that the regression assumptions is not violated, because this line is straight enough.
+
+```{r}
+boxplot(COST ~ AGE, data = drugcost, main = "Drug Costs by Average Age", col = "lightblue")
+
+```
+
+```{r}
+boxplot(COST ~ F, data = drugcost, main = "Drug Costs by Percentage of Female Members", col = "pink")
+```
+
+# Checkin_2:
+
+test the hypothesis 1:
+
+```{r}
+library(MASS)
+data(drugcost, package = "alr4")
+
+model <- lm(COST ~ . , data = drugcost)
+
+summary(model)
+
+# Conduct hypothesis testing for Hypothesis 1
+interaction_model <- lm(COST ~ RI * GS , data = drugcost)
+
+anova(model, interaction_model)
+
+```
+
+Based on the p-value (Pr(\>F)) of the interaction model that we see from the above data is 0.8532, which is much larger than the significance level of 0.05, therefore, we cannot reject the null hypothesis. Based on these data, we found no significant difference between the two sets of models containing the GS \* RI interaction term and no GS \* RI interaction term. This rejects Hypothesis 1 and suggests that the interaction term may play a minor role in explaining changes in drug costs.
+
+test the hypothesis 2:
+
+```{r}
+#model for average member age
+age_model <- lm(COST ~ AGE, data = drugcost)
+
+anova(model, age_model)
+
+```
+
+```{r}
+#model for percentage of female members (F)
+female_model <- lm(COST ~ F, data = drugcost)
+
+anova(model, female_model)
+
+```
+
+Observation of the age model data, the p-value (Pr(\>F)) for Model of Age is 0.01084, which is less than the significance level of 0.05. Therefore, we reject the null hypothesis. At the same time, it response the hypothesis suggesting that the AGE variable contributes significantly to explaining the variation in drug costs.
+
+Move to the female model data, Observation from that the p-value (Pr(\>F)) for this model is 0.01325, which is less than the significance level of 0.05. we reject the null hypothesis as well. It also responds the hypothesis that the female gender playing a role to the variation in drug costs.
+
+```{r}
+
+r_squared <- c(
+  Interaction_Model = summary(interaction_model)$adj.r.squared,
+  Age_Model = summary(age_model)$adj.r.squared,
+  Female_Model = summary(female_model)$adj.r.squared
+)
+
+r_squared
+```
+
+```{r}
+# P-value for Interaction_Model
+summary(interaction_model)$coefficients[, "Pr(>|t|)"]
+
+# P-value for Age_Model
+summary(age_model)$coefficients[, "Pr(>|t|)"]
+
+# P-value for Female_Model
+summary(female_model)$coefficients[, "Pr(>|t|)"]
+```
+
+```{r}
+rsq <- function(fit) summary(fit)$r.squared
+adj_rsq <- function(fit) summary(fit)$adj.r.squared
+PRESS <- function(fit) {
+    pr <- residuals(fit)/(1 - lm.influence(fit)$hat)
+    sum(pr^2)
+}
+```
+
+```{r}
+library(magrittr)
+
+models_1 <- list(age_model, female_model, interaction_model)
+data.frame(models_1 = c('age_model', 'female_model', 'interaction_model'),
+           rsq = sapply(models_1, rsq),
+           adj.rsq = sapply(models_1, adj_rsq),
+           PRESS = sapply(models_1, PRESS),
+           AIC = sapply(models_1, AIC),
+           BIC = sapply(models_1, BIC)
+) %>% 
+  print()
+```
+
+```         
+Explanation for selecting the final model: 
+
+I created these three models: age, female, and interaction and compared their adjusted r-squared, AIC, BIC, and diagnostic statistics to confirm which one was the best fit. Because in the face of these data, I found that the interaction model performed best: its r-squared was larger than the other two sets of models, and its AIC/BIC was smaller than the other two sets of models. Its sum of squared prediction residuals is also smaller than the other two models.
+```
+
+```{r}
+final_model <- interaction_model
+summary(final_model)
+```
+
+```{r}
+par(mfrow = c(2 ,3))
+plot(final_model, which = 1:6)
+```
+
+```{r}
+final <- lm(COST ~ RI + I(RI^2) * GS, data = drugcost)
+plot(final, which = 1)
+```
+
+We need to adjust this line to be horizontal. After adjustment, we can see that this line is very close to horizontal.
